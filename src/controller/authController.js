@@ -289,7 +289,7 @@ export const checkAuth = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if(user.isBanned) {
+    if (user.isBanned) {
       return res.status(403).json({ message: "You're Banned" });
     }
 
@@ -302,6 +302,44 @@ export const checkAuth = async (req, res) => {
 export const logOut = async (req, res) => {
   res.clearCookie('token');
   res.status(200).json({ success: true, message: 'Logged out successfully' });
+};
+
+export const getUserCount = async (req, res) => {
+  try {
+    const user = await User.find().select(
+      'email isBanned name phone role avatar'
+    );
+
+    if (!user)
+      return res.status(404).json({ success: false, message: 'No user found' });
+
+    const totalUser = user.length;
+    const student = user.filter((student) => student.role === 'student');
+    const teacher = user.filter((teacher) => teacher.role === 'teacher');
+    const admin = user.filter((admin) => admin.role === 'admin');
+    const banned = user.filter((banned) => admin.isBanned === true);
+    const courseEnroll = user.filter(
+      (student) => student.enrolledCourses?.length > 0
+    );
+
+    res.status(200).json({
+      success: true,
+      students: student,
+      teachers: teacher,
+      admins: admin,
+      banned: banned,
+      userCount: {
+        totalUser,
+        totalCourseEnroll: courseEnroll.length,
+        totalStudent: student.length,
+        totalTeacher: teacher.length,
+        totalAdmin: admin.length,
+        TotalBanned: banned.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 export const getTeacherAdmin = async (req, res) => {

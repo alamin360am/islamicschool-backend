@@ -399,7 +399,7 @@ export const getCourses = async (req, res) => {
       .populate('teachers', 'name email role')
       .populate('category', 'name')
       .select(
-        'title thumbnail price category description features teachers enrollmentStart enrollmentEnd courseStart duration averageRating ratingCount lectures status featured createdAt'
+        'title thumbnail price category description features teachers enrollmentStart enrollmentEnd courseStart duration averageRating ratingCount lectures status featured createdAt studentCount'
       );
     const modifiedCourses = courses.map((course) => ({
       ...course.toObject(),
