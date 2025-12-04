@@ -24,6 +24,13 @@ import {
 } from '../controller/courseController.js';
 import { adminOnly, protect, teacherOrAdmin } from '../middlewares/auth.js';
 import { upload } from '../middlewares/upload.js';
+import {
+  addReview,
+  deleteReview,
+  getCourseReviews,
+  getUserReviewForCourse,
+  updateReview,
+} from '../controller/reviewController.js';
 
 const courseRouter = express.Router();
 
@@ -97,5 +104,12 @@ courseRouter.delete(
 courseRouter.post('/:id/coupons', protect, adminOnly, addCouponToCourse);
 courseRouter.put('/coupons/:couponId', protect, adminOnly, updateCoupon);
 courseRouter.delete('/coupons/:couponId', protect, adminOnly, deleteCoupon);
+
+// Review CRUD
+courseRouter.post('/:courseId/reviews', protect, addReview);
+courseRouter.put('/:courseId/reviews/:reviewId', protect, updateReview);
+courseRouter.delete('/:courseId/reviews/:reviewId', protect, deleteReview);
+courseRouter.get('/:courseId/reviews', getCourseReviews);
+courseRouter.get('/:courseId/my-review', protect, getUserReviewForCourse);
 
 export default courseRouter;

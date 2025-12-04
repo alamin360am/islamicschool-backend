@@ -73,7 +73,6 @@ const enrollmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound unique index to prevent duplicate enrollments
 enrollmentSchema.index({ student: 1, course: 1 }, { unique: true });
 
 export default mongoose.model('Enrollment', enrollmentSchema);
