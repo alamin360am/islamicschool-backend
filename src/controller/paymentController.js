@@ -246,7 +246,9 @@ export const handleWebhook = async (req, res) => {
         $inc: { studentCount: 1 },
       });
 
-      console.log(`Payment completed for enrollment: ${enrollment._id}`);
+      // console.log(`Payment completed for enrollment: ${enrollment._id}`);
+
+
     } else if (payment_status === 'FAILED') {
       enrollment.paymentStatus = 'failed';
       await enrollment.save();

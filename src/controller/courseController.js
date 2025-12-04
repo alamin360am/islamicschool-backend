@@ -438,18 +438,13 @@ export const getCourseById = async (req, res) => {
 export const getCourseWithLectures = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { id } = req.params;
-
-    console.log(userId, id);
-    
+    const { id } = req.params;    
 
     const enrollment = await Enrollment.findOne({
       student: userId,
       course: id,
       paymentStatus: 'completed',
     });
-
-    console.log(enrollment);
     
 
     if (!enrollment) {
