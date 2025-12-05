@@ -5,6 +5,7 @@ import {
   forgotPassword,
   getTeacherAdmin,
   getUserCount,
+  getUserDataById,
   logIn,
   logOut,
   resetPassword,
@@ -39,5 +40,6 @@ authRouter.post('/logout', logOut);
 // for log out
 authRouter.get('/teachers', getTeacherAdmin);
 authRouter.get('/users', getUserCount);
+authRouter.get('/:id', getUserDataById);
 
 export default authRouter;

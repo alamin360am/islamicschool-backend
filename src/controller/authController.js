@@ -320,7 +320,6 @@ export const updateUser = async (req, res) => {
 
     await user.save();
     res.json({ success: true, message: 'User Updated Successfully' });
-    
   } catch (error) {
     console.error('Cloudinary Upload Error:', error);
     res.status(500).json({ error: error.message });
@@ -402,5 +401,24 @@ export const getTeacherAdmin = async (req, res) => {
     res.status(200).json({ success: true, teachers });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getUserDataById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id).select(
+      'name email phone avatar avatarPublicId address role enrolledCourses isBanned verified'
+    );
+
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+
+    res.status(200).json({ success: true, user: user });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };
