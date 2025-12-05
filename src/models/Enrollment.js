@@ -63,16 +63,42 @@ const enrollmentSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0,
-      max: 100
+      max: 100,
+      set: function(value) {
+        return Math.min(100, Math.max(0, Math.round(value)));
+      }
     },
     completedLectures: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Lecture'
-    }]
+      ref: 'Lecture',
+      default: []
+    }],
+    lastActivity: {
+      type: Date,
+      default: Date.now
+    }
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
+// Update lastActivity before saving
+enrollmentSchema.pre('save', function(next) {
+  if (this.isModified()) {
+    this.lastActivity = new Date();
+  }
+  next();
+});
+
+// Virtual for completion percentage
+enrollmentSchema.virtual('completionPercentage').get(function() {
+  return this.progress;
+});
+
 enrollmentSchema.index({ student: 1, course: 1 }, { unique: true });
+enrollmentSchema.index({ lastActivity: -1 });
 
 export default mongoose.model('Enrollment', enrollmentSchema);

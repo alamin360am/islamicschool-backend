@@ -133,12 +133,10 @@ export const completeLecture = async (req, res) => {
   try {
     const { enrollmentId } = req.params;
     const { lectureId } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     // Find enrollment
-    const enrollment = await Enrollment.findById(enrollmentId)
-      .populate('course')
-      .populate('completedLectures');
+    const enrollment = await Enrollment.findById(enrollmentId);
 
     if (!enrollment) {
       return res.status(404).json({
@@ -155,10 +153,22 @@ export const completeLecture = async (req, res) => {
       });
     }
 
-    // Check if lecture exists in the course
-    const course = await Course.findById(enrollment.course._id)
-      .populate('lectures');
+    // Check if already completed
+    if (enrollment.completedLectures.includes(lectureId)) {
+      return res.status(200).json({
+        success: true,
+        message: 'Lecture already completed',
+        enrollment,
+        progress: enrollment.progress
+      });
+    }
 
+    // Add lecture to completedLectures
+    enrollment.completedLectures.push(lectureId);
+
+    // Get course to calculate total lectures
+    const course = await Course.findById(enrollment.course).select('lectures');
+    
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -166,30 +176,10 @@ export const completeLecture = async (req, res) => {
       });
     }
 
-    // Find the lecture
-    const lecture = course.lectures.find(l => l._id.toString() === lectureId);
-    if (!lecture) {
-      return res.status(404).json({
-        success: false,
-        message: 'Lecture not found in this course'
-      });
-    }
-
-    // Check if already completed
-    if (enrollment.completedLectures.some(l => l._id.toString() === lectureId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Lecture already completed'
-      });
-    }
-
-    // Add lecture to completedLectures
-    enrollment.completedLectures.push(lectureId);
-
     // Calculate progress
     const totalLectures = course.lectures.length;
     const completedCount = enrollment.completedLectures.length;
-    const progress = Math.round((completedCount / totalLectures) * 100);
+    const progress = totalLectures > 0 ? Math.round((completedCount / totalLectures) * 100) : 0;
 
     enrollment.progress = progress;
 
@@ -198,9 +188,10 @@ export const completeLecture = async (req, res) => {
       enrollment.completionStatus = 'completed';
     }
 
-    await enrollment.save();
+    // Save with validation
+    await enrollment.save({ validateBeforeSave: true });
 
-    // Populate the updated enrollment
+    // Populate for response
     const updatedEnrollment = await Enrollment.findById(enrollmentId)
       .populate('student', 'name email')
       .populate('course', 'title category duration thumbnail')
