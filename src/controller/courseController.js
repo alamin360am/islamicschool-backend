@@ -371,7 +371,7 @@ export const getCourseDetails = async (req, res) => {
       .populate('lectures', 'title')
       .populate('teachers', 'name role bio')
       .select(
-        'title thumbnail price category description features duration enrollmentEnd courseStart averageRating lectures teachers enrollmentStart status'
+        "averageRating category courseStart description duration enrollmentEnd enrollmentStart featured features lectures price ratingCount reviews status studentCount teachers thumbnail title"
       );
 
     if (!course) {

@@ -9,10 +9,13 @@ import {
   logOut,
   resetPassword,
   signUp,
+  updateUser,
   verifyOldPassword,
   verifyOtp,
 } from '../controller/authController.js';
 import { protect } from '../middlewares/auth.js';
+import { upload } from '../middlewares/upload.js';
+
 const authRouter = express.Router();
 
 authRouter.post('/signup', signUp);
@@ -29,6 +32,7 @@ authRouter.post('/forgot-password', forgotPassword);
 // if forget password an otp is send to email
 authRouter.post('/reset-password', resetPassword);
 // after verify otp user can reset password
+authRouter.put('/:id', protect, upload.single('user'), updateUser);
 authRouter.get('/check', protect, checkAuth);
 // Checking if user is authenticated
 authRouter.post('/logout', logOut);

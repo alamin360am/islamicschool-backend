@@ -7,6 +7,7 @@ import {
   getForgetPasswordEmailHtml,
   getVerificationEmailHtml,
 } from '../utils/emailTemplate.js';
+import cloudinary from '../utils/cloudinary.js';
 
 export const signUp = async (req, res) => {
   const { name, email, phone, password } = req.body;
@@ -279,6 +280,50 @@ export const resetPassword = async (req, res) => {
       .json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, address } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid or expired reset token' });
+
+    user.name = name;
+    user.address = address;
+
+    if (req.file) {
+      if (user.avatarPublicId) {
+        await cloudinary.uploader.destroy(user.avatarPublicId);
+      }
+
+      const result = await cloudinary.uploader.upload_stream(
+        { folder: 'user' },
+        async (error, result) => {
+          if (error) throw error;
+          user.avatar = result.secure_url;
+          user.avatarPublicId = result.public_id;
+          await user.save();
+          res.json({ success: true, message: 'User Updated Successfully' });
+        }
+      );
+
+      result.end(req.file.buffer);
+      return;
+    }
+
+    await user.save();
+    res.json({ success: true, message: 'User Updated Successfully' });
+    
+  } catch (error) {
+    console.error('Cloudinary Upload Error:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
