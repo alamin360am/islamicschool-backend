@@ -339,6 +339,7 @@ export const getFeaturedCourses = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .populate('category', 'name')
+      .populate('teachers', 'name role avatar')
       .select(
         'title thumbnail price category description duration enrollmentEnd courseStart averageRating lectures teachers'
       );
