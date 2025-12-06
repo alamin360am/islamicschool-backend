@@ -33,6 +33,7 @@ export const protect = async (req, res, next) => {
 
 // Allow only Teacher or Admin
 export const teacherOrAdmin = (req, res, next) => {
+
   if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin')) {
     return next();
   }

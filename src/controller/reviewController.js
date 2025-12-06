@@ -233,7 +233,7 @@ export const getCourseReviews = async (req, res) => {
       .select('reviews averageRating ratingCount')
       .populate({
         path: 'reviews.user',
-        select: 'name email profileImage'
+        select: 'name email avatar'
       });
 
     if (!course) {

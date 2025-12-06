@@ -50,7 +50,7 @@ export const createCourse = async (req, res) => {
       // Case 1: Already an array
       if (Array.isArray(features)) {
         featuresArray = features;
-      } 
+      }
       // Case 2: String that might be JSON
       else if (typeof features === 'string') {
         try {
@@ -84,7 +84,10 @@ export const createCourse = async (req, res) => {
       }
 
       // Validate each feature is not empty (only if we have features)
-      if (featuresArray.length > 0 && featuresArray.some((feature) => !feature.trim())) {
+      if (
+        featuresArray.length > 0 &&
+        featuresArray.some((feature) => !feature.trim())
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Features cannot contain empty values',
@@ -341,7 +344,7 @@ export const getFeaturedCourses = async (req, res) => {
       .populate('category', 'name')
       .populate('teachers', 'name role avatar')
       .select(
-        'title thumbnail price category description duration enrollmentEnd courseStart averageRating lectures teachers'
+        'title thumbnail price category description duration enrollmentEnd courseStart averageRating lectures teachers ratingCount'
       );
 
     if (!featuredCourse) {
@@ -370,9 +373,9 @@ export const getCourseDetails = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate('category', 'name')
       .populate('lectures', 'title')
-      .populate('teachers', 'name role bio')
+      .populate('teachers', 'name role bio avatar')
       .select(
-        "averageRating category courseStart description duration enrollmentEnd enrollmentStart featured features lectures price ratingCount reviews status studentCount teachers thumbnail title"
+        'averageRating category courseStart description duration enrollmentEnd enrollmentStart featured features lectures price ratingCount status studentCount teachers thumbnail title'
       );
 
     if (!course) {
@@ -439,14 +442,13 @@ export const getCourseById = async (req, res) => {
 export const getCourseWithLectures = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { id } = req.params;    
+    const { id } = req.params;
 
     const enrollment = await Enrollment.findOne({
       student: userId,
       course: id,
       paymentStatus: 'completed',
     });
-    
 
     if (!enrollment) {
       return res
@@ -529,12 +531,15 @@ export const updateCourse = async (req, res) => {
         try {
           featuresArray = JSON.parse(features);
         } catch (error) {
-          featuresArray = features.split(',').map(feature => feature.trim()).filter(Boolean);
+          featuresArray = features
+            .split(',')
+            .map((feature) => feature.trim())
+            .filter(Boolean);
         }
       }
-      
+
       // Validate each feature is not empty
-      if (featuresArray.some(feature => !feature.trim())) {
+      if (featuresArray.some((feature) => !feature.trim())) {
         return res.status(400).json({
           success: false,
           message: 'Features cannot contain empty values',
@@ -767,6 +772,55 @@ export const deleteCourse = async (req, res) => {
   }
 }; // Done
 
+export const getTeacherCourses = async (req, res) => {
+  try {
+    const courses = await Course.find({
+      teachers: req.user._id,
+    })
+      .populate('category', 'name')
+      .populate('teachers', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: courses.length,
+      data: courses,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
+};
+
+export const getTeacherCourseDetails = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate('teachers', 'name email role')
+      .populate('lectures', 'title videoUrl resources')
+      .populate('category', 'name');
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const modifiedCourse = {
+      ...course._doc,
+      lectureCount: course.lectures.length,
+    };
+
+    res.json(modifiedCourse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
+};
+
 // ------------------- Lecture -------------------
 
 export const createLecture = async (req, res) => {
@@ -813,6 +867,19 @@ export const createLecture = async (req, res) => {
         success: false,
         message: 'Course not found',
       });
+    }
+
+    if (req.user.role === 'teacher') {
+      const isTeacherOfThisCourse = course.teachers.some(
+        (teacherId) => teacherId.toString() === req.user._id.toString()
+      );
+
+      if (!isTeacherOfThisCourse) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not allowed to add lectures to this course.',
+        });
+      }
     }
 
     // Upload resource files to Cloudinary (if any)
@@ -925,14 +992,29 @@ export const updateLecture = async (req, res) => {
       });
     }
 
-    // Update title if provided
+    // --- Teacher Permission Check ---
+    if (req.user.role === 'teacher') {
+      const course = await Course.findById(lecture.course).select('teachers');
+
+      const isTeacherOfCourse = course.teachers.some(
+        (tId) => tId.toString() === req.user._id.toString()
+      );
+
+      if (!isTeacherOfCourse) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not allowed to update lectures of this course.',
+        });
+      }
+    }
+
+    // Update title
     if (title?.trim()) {
       lecture.title = title.trim();
     }
 
-    // Update video URL if provided
+    // Update video URL
     if (videoUrl?.trim()) {
-      // Validate video URL
       try {
         new URL(videoUrl);
         lecture.videoUrl = videoUrl.trim();
@@ -944,7 +1026,7 @@ export const updateLecture = async (req, res) => {
       }
     }
 
-    // Handle new resources
+    // New resources upload
     for (const resourceFile of resourceFiles) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
@@ -966,9 +1048,7 @@ export const updateLecture = async (req, res) => {
           fileUrl: uploadResult.secure_url,
           publicId: uploadResult.public_id,
         });
-      } catch (uploadError) {
-        console.error('Resource upload error:', uploadError);
-      }
+      } catch (err) {}
     }
 
     await lecture.save();
@@ -1030,6 +1110,22 @@ export const deleteLecture = async (req, res) => {
       });
     }
 
+    // --- Teacher Permission Check ---
+    if (req.user.role === 'teacher') {
+      const course = await Course.findById(lecture.course).select('teachers');
+
+      const isTeacherOfCourse = course.teachers.some(
+        (tId) => tId.toString() === req.user._id.toString()
+      );
+
+      if (!isTeacherOfCourse) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not allowed to delete this lecture.',
+        });
+      }
+    }
+
     // Delete resources from Cloudinary
     for (const resource of lecture.resources) {
       if (resource.publicId) {
@@ -1070,6 +1166,22 @@ export const deleteResource = async (req, res) => {
       });
     }
 
+    // --- Teacher Permission Check ---
+    if (req.user.role === 'teacher') {
+      const course = await Course.findById(lecture.course).select('teachers');
+
+      const isTeacherOfCourse = course.teachers.some(
+        (tId) => tId.toString() === req.user._id.toString()
+      );
+
+      if (!isTeacherOfCourse) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not allowed to delete resources from this lecture.',
+        });
+      }
+    }
+
     const resource = lecture.resources.id(resourceId);
     if (!resource) {
       return res.status(404).json({
@@ -1078,12 +1190,12 @@ export const deleteResource = async (req, res) => {
       });
     }
 
-    // Delete resource from Cloudinary
+    // Delete resource file
     if (resource.publicId) {
       await cloudinary.uploader.destroy(resource.publicId);
     }
 
-    // Remove resource from array
+    // Remove resource
     lecture.resources.pull(resourceId);
     await lecture.save();
 

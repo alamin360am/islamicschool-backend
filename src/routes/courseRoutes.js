@@ -18,6 +18,8 @@ import {
   getLecture,
   getLecturesByCourse,
   getPublishCourses,
+  getTeacherCourseDetails,
+  getTeacherCourses,
   updateCoupon,
   updateCourse,
   updateLecture,
@@ -46,8 +48,15 @@ courseRouter.post('/courseCategory', protect, adminOnly, addCourseCategory);
 courseRouter.get('/', getCourses);
 courseRouter.get('/publicCourse', getPublishCourses);
 courseRouter.get('/featuredCourse', getFeaturedCourses);
+courseRouter.get('/teacherCourses', protect, teacherOrAdmin, getTeacherCourses);
 courseRouter.get('/courseDetails/:id', getCourseDetails);
 courseRouter.get('/courseCategory', getCourseCategory);
+courseRouter.get(
+  '/teacherCourses/:id',
+  protect,
+  teacherOrAdmin,
+  getTeacherCourseDetails
+);
 courseRouter.get('/:id', protect, adminOnly, getCourseById);
 courseRouter.get('/:id/lectures', protect, getCourseWithLectures);
 courseRouter.put(

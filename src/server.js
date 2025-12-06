@@ -13,6 +13,7 @@ import courseRouter from './routes/courseRoutes.js';
 import enrollmentRouter from './routes/enrollmentRoutes.js';
 import couponRouter from './routes/couponRoutes.js';
 import paymentRouter from './routes/paymentRoutes.js';
+import documentationRouter from './routes/documentationRoutes.js';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/courses', courseRouter);
 app.use('/api/coupons', couponRouter);
 app.use('/api/enrollment', enrollmentRouter);
 app.use('/api/payments', paymentRouter);
+app.use('/api/documentation', documentationRouter);
 
 const PORT = process.env.PORT || 5000;
 
