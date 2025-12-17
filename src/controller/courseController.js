@@ -312,6 +312,7 @@ export const getPublishCourses = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .populate('category', 'name')
+      .populate('teachers', 'name role avatar')
       .select(
         'title thumbnail price category description duration enrollmentEnd courseStart averageRating lectures teachers'
       );
@@ -843,21 +844,16 @@ export const createLecture = async (req, res) => {
       });
     }
 
-    if (!videoUrl?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Video URL is required',
-      });
-    }
-
     // Validate video URL format
-    try {
-      new URL(videoUrl);
-    } catch (error) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a valid video URL',
-      });
+    if (videoUrl) {
+      try {
+        new URL(videoUrl);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid video URL',
+        });
+      }
     }
 
     // Check if course exists
